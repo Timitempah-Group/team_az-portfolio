@@ -1,0 +1,19 @@
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "type",
+        "notEquals": "microsoft.azureactivedirectory/b2cdirectories"
+      },
+      {
+        "not": {
+          "field": "location",
+          "in": ["uksouth", "ukwest", "global"]
+        }
+      }
+    ]
+  },
+  "then": {
+    "effect": "deny"
+  }
+}
