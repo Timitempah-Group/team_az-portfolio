@@ -1,0 +1,8 @@
+// Cost attribution query — shows activity volume per resource group
+// over the last 30 days as a time chart
+// In a real engagement this would be connected to a Log Analytics
+// workspace with billing data to show actual spend per resource group
+AzureActivity
+| where TimeGenerated > ago(30d)
+| summarize count() by ResourceGroup, bin(TimeGenerated, 1d)
+| render timechart
