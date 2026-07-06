@@ -1,0 +1,224 @@
+# ════════════════════════════════════════════════════════════════
+# Azure DevOps Pipeline — Terraform GitOps with Approval Gate
+# ════════════════════════════════════════════════════════════════
+# Triggers automatically when changes are pushed to files inside
+# the task-08-azure-devops-pipeline folder on the main branch
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - task-08-azure-devops-pipeline/**
+
+# Pull request trigger — runs validate and plan on every PR
+pr:
+  branches:
+    include:
+      - main
+
+# Variables come from the Library group created in Part C
+# This keeps sensitive values OUT of the YAML file
+variables:
+  - group: terraform-backend
+  - name: TF_VERSION
+    value: '1.7.0'
+  - name: WORKING_DIR
+    value: 'task-08-azure-devops-pipeline/terraform'
+
+stages:
+
+# ── STAGE 1: VALIDATE ────────────────────────────────────────────
+# Checks formatting, validates syntax, runs security scans
+# Runs on every push and every pull request
+- stage: Validate
+  displayName: '1 — Validate & Security Scan'
+  jobs:
+  - job: TerraformValidate
+    displayName: 'Terraform Validate + tfsec + Checkov'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: TerraformInstaller@1
+      displayName: 'Install Terraform $(TF_VERSION)'
+      inputs:
+        terraformVersion: $(TF_VERSION)
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Init'
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: $(WORKING_DIR)
+        backendServiceArm: 'azure-dev-connection'
+        backendAzureRmResourceGroupName: $(BACKEND_RG)
+        backendAzureRmStorageAccountName: $(BACKEND_STORAGE_ACCOUNT)
+        backendAzureRmContainerName: $(BACKEND_CONTAINER)
+        backendAzureRmKey: 'task08.tfstate'
+
+    - script: terraform fmt -check -recursive
+      displayName: 'Terraform Format Check'
+      workingDirectory: $(WORKING_DIR)
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Validate'
+      inputs:
+        provider: 'azurerm'
+        command: 'validate'
+        workingDirectory: $(WORKING_DIR)
+
+    # tfsec scans for security misconfigurations in Terraform
+    # soft_fail: true means findings are reported but do not block
+    - script: |
+        curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+        tfsec $(WORKING_DIR) --format junit --out tfsec-results.xml || true
+      displayName: 'tfsec Security Scan'
+
+    - task: PublishTestResults@2
+      displayName: 'Publish tfsec Results'
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'tfsec-results.xml'
+        testRunTitle: 'tfsec Security Scan'
+      condition: always()
+
+    # Checkov checks against 1000+ security and compliance rules
+    - script: |
+        pip install checkov
+        checkov -d $(WORKING_DIR) --output junitxml --output-file-path checkov-results.xml || true
+      displayName: 'Checkov Policy Scan'
+
+    - task: PublishTestResults@2
+      displayName: 'Publish Checkov Results'
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'checkov-results.xml'
+        testRunTitle: 'Checkov Policy Scan'
+      condition: always()
+
+# ── STAGE 2: PLAN ────────────────────────────────────────────────
+# Runs terraform plan and saves the output as a pipeline artifact
+# Only runs if Validate passed
+- stage: Plan
+  displayName: '2 — Terraform Plan'
+  dependsOn: Validate
+  condition: succeeded()
+  jobs:
+  - job: TerraformPlan
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: $(TF_VERSION)
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Init'
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: $(WORKING_DIR)
+        backendServiceArm: 'azure-dev-connection'
+        backendAzureRmResourceGroupName: $(BACKEND_RG)
+        backendAzureRmStorageAccountName: $(BACKEND_STORAGE_ACCOUNT)
+        backendAzureRmContainerName: $(BACKEND_CONTAINER)
+        backendAzureRmKey: 'task08.tfstate'
+
+    # Save the plan as an artifact so Apply uses exactly what was planned
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Plan'
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: $(WORKING_DIR)
+        environmentServiceNameAzureRM: 'azure-dev-connection'
+        commandOptions: '-out=$(Build.ArtifactStagingDirectory)/tfplan'
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Save Plan Artifact'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/tfplan'
+        artifact: 'tfplan'
+
+# ── STAGE 3: APPROVAL ────────────────────────────────────────────
+# Pipeline PAUSES here and waits for manual approval
+# Configure approvers on the production Environment in Azure DevOps
+- stage: Approval
+  displayName: '3 — Awaiting Manual Approval'
+  dependsOn: Plan
+  condition: succeeded()
+  jobs:
+  - deployment: WaitForApproval
+    displayName: 'Production Approval Gate'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: echo 'Approval received. Proceeding to Apply.'
+
+# ── STAGE 4: APPLY ───────────────────────────────────────────────
+# Downloads the saved plan and applies it
+# Only runs after manual approval in Stage 3
+- stage: Apply
+  displayName: '4 — Terraform Apply'
+  dependsOn: Approval
+  condition: succeeded()
+  jobs:
+  - job: TerraformApply
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: $(TF_VERSION)
+
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download Plan Artifact'
+      inputs:
+        artifact: 'tfplan'
+        path: '$(Build.ArtifactStagingDirectory)'
+
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Init'
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: $(WORKING_DIR)
+        backendServiceArm: 'azure-dev-connection'
+        backendAzureRmResourceGroupName: $(BACKEND_RG)
+        backendAzureRmStorageAccountName: $(BACKEND_STORAGE_ACCOUNT)
+        backendAzureRmContainerName: $(BACKEND_CONTAINER)
+        backendAzureRmKey: 'task08.tfstate'
+
+    # Apply using the saved plan — guarantees exactly what was approved
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Apply'
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        workingDirectory: $(WORKING_DIR)
+        environmentServiceNameAzureRM: 'azure-dev-connection'
+        commandOptions: '$(Build.ArtifactStagingDirectory)/tfplan'
+
+# ── STAGE 5: SMOKE TEST ──────────────────────────────────────────
+# Verifies the deployment actually exists in Azure
+- stage: SmokeTest
+  displayName: '5 — Smoke Test'
+  dependsOn: Apply
+  condition: succeeded()
+  jobs:
+  - job: VerifyDeployment
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Verify Resource Group Exists'
+      inputs:
+        azureSubscription: 'azure-dev-connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo 'Checking that rg-task08-demo was created...'
+          az group show --name rg-task08-demo
+          echo 'Smoke test passed — resource group exists in Azure.'
