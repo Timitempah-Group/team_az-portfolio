@@ -1,0 +1,50 @@
+---
+# Ansible Playbook — Post-provisioning VM configuration
+# Runs after Terraform deploys the VM
+# Installs Nginx and deploys a simple health check page
+
+- name: Configure VM post-provisioning
+  hosts: all
+  become: true
+  vars:
+    app_port: 80
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Nginx web server
+      apt:
+        name: nginx
+        state: present
+
+    - name: Start and enable Nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Deploy health check page
+      copy:
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <body>
+            <h1>Portfolio Demo VM</h1>
+            <p>Status: healthy</p>
+            <p>Configured by: Ansible</p>
+            <p>Provisioned by: Terraform</p>
+          </body>
+          </html>
+        dest: /var/www/html/index.html
+        mode: '0644'
+
+    - name: Verify Nginx is running
+      command: systemctl status nginx
+      register: nginx_status
+
+    - name: Print Nginx status
+      debug:
+        msg: "{{ nginx_status.stdout }}"
