@@ -1,0 +1,100 @@
+name: Security Scanning Pipeline
+
+# Triggers on push and pull requests to main
+on:
+  push:
+    branches: [main]
+    paths:
+      - task-09-security-scanning/**
+  pull_request:
+    branches: [main]
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  # ── Layer 1: SAST — Static Application Security Testing ──────────
+  # Scans application source code for vulnerabilities and code smells
+  sast_scan:
+    name: SAST — SonarCloud Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # SonarCloud scans Python code for bugs, vulnerabilities,
+      # and code smells before the build even starts
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=portfolio-task09
+            -Dsonar.organization=timitempah-group
+            -Dsonar.sources=task-09-security-scanning/app
+        continue-on-error: true
+        # continue-on-error: true = soft fail on first run
+        # Switch to false once SonarCloud project is configured
+
+  # ── Layer 2: IaC Security — Terraform Scanning ───────────────────
+  # Scans Terraform code for security misconfigurations
+  iac_scan:
+    name: IaC Security — tfsec and Checkov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # tfsec: catches security misconfigs in Terraform
+      # e.g. storage accounts with public access, VMs without encryption
+      - name: tfsec IaC Scan
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: task-09-security-scanning/terraform
+          soft_fail: true
+
+      # Checkov: 1000+ compliance rules across Terraform, Docker, K8s
+      - name: Checkov Policy Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: task-09-security-scanning/terraform
+          soft_fail: true
+
+  # ── Layer 3: Container Scanning ───────────────────────────────────
+  # Scans Docker images for known CVEs in OS packages
+  container_scan:
+    name: Container Scan — Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Trivy scans for known CVEs in the application dependencies
+      # and OS packages — catches vulnerable library versions
+      - name: Trivy Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'task-09-security-scanning/app'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  # ── Summary ───────────────────────────────────────────────────────
+  # Reports the overall scanning result
+  scan_summary:
+    name: Scan Summary
+    runs-on: ubuntu-latest
+    needs: [sast_scan, iac_scan, container_scan]
+    steps:
+      - name: Security Scan Complete
+        run: |
+          echo "All security scanning layers completed:"
+          echo "  Layer 1 - SAST (SonarCloud): application code"
+          echo "  Layer 2 - IaC (tfsec + Checkov): Terraform config"
+          echo "  Layer 3 - Container (Trivy): dependency CVEs"
+          echo "Review findings above before merging to main."
