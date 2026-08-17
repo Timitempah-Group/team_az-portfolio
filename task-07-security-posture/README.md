@@ -4,6 +4,8 @@
 Defender for Cloud enabled across key resource types with a documented
 remediation decision captured as an Architecture Decision Record.
 
+![Defender Secure Score](screenshots/01-defender-secure-score.png)
+
 ## Secure Score
 Current score: 50% (6/12) with 10 active recommendations.
 Defender for Cloud plans enabled: VirtualMachines, SqlServers,
