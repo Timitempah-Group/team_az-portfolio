@@ -5,11 +5,17 @@ A multi-region disaster recovery setup demonstrating RTO/RPO-driven
 architecture — primary Azure SQL Database in UK South with automatic
 geo-replication and failover to UK West.
 
+![Resource Groups Overview](screenshots/resource-groups-overview.png)
+
 ## Architecture
 - Primary Azure SQL Server and Database in UK South
 - Secondary Azure SQL Server in UK West with Active Geo-Replication
 - SQL Failover Group with Automatic failover policy (60 min grace period)
 - Data replicated continuously from UK South to UK West
+
+![DR Primary Resource Group Overview](screenshots/rg-dr-primary-overview.png)
+
+![Failover Groups](screenshots/failover-groups.png)
 
 ## Key Design Decisions
 RTO and RPO targets are agreed with the business before any technical
