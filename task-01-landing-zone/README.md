@@ -5,6 +5,8 @@ A production-grade Azure Landing Zone using Terraform — the governance
 foundation any enterprise organisation deploys at the start of a cloud
 adoption journey.
 
+![Resource Group Overview](screenshots/01-resource-group-overview.png)
+
 ## Architecture
 - 3-level Management Group hierarchy: Platform / Landing Zones / Sandbox
 - Azure Policy: mandatory tagging (environment, cost-centre, owner) — Deny effect
@@ -15,6 +17,14 @@ adoption journey.
 - User Defined Route (UDR) forcing all spoke traffic through the Firewall
 - Private DNS Zone for Azure SQL private endpoints
 - Terraform remote state in Azure Blob Storage with state locking
+
+![VNet Peering](screenshots/02-vnet-peering.png)
+
+![Firewall Overview](screenshots/03-firewall-overview.png)
+
+![Route Table](screenshots/04-route-table.png)
+
+![Bastion Overview](screenshots/05-bastion-overview.png)
 
 ## Why It Matters
 This represents the foundational governance layer every workload should
