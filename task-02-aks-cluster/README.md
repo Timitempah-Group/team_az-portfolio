@@ -5,6 +5,8 @@ A production-grade AKS cluster demonstrating container orchestration
 with proper governance, security, and observability — not just a
 basic cluster deployment.
 
+![Resource Group Overview](screenshots/rg-aks-demo.png)
+
 ## Architecture
 - Azure CNI networking — pods get real VNet IP addresses
 - NAT Gateway — provides reliable outbound internet access for pods
@@ -14,6 +16,12 @@ basic cluster deployment.
 - Cluster Autoscaler configured on both pools
 - Container Insights feeding Log Analytics for full observability
 - AcrPull role assignment — credential-free image pulls from ACR
+
+![Node Pools](screenshots/Node_pools.png)
+
+![kubectl get nodes](screenshots/kubectl_get_nodes.png)
+
+![AKS Demo Portfolio](screenshots/aks-demo-portfolio.png)
 
 ## Key Design Decisions
 Resource requests and limits set on every deployment — without them
