@@ -4,6 +4,8 @@
 A cost governance setup: a monthly budget with three escalating
 alert thresholds, and a KQL query for cost attribution by resource group.
 
+![Budget](screenshots/budget.png)
+
 ## Budget Alert Thresholds
 - 70% — Warning. Review spend trend, no action required yet.
 - 90% — Action required. Freeze non-essential resource creation
