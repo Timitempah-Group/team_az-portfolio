@@ -5,12 +5,18 @@ A complete monitoring stack deployed entirely via Terraform —
 Log Analytics workspace, metric alert rules, action group with
 email notifications, and an operations dashboard.
 
+![Resource Group Overview](screenshots/resource-group-overview.png)
+
 ## What Was Deployed
 - Log Analytics Workspace — central store for all logs and metrics
 - Action Group — email notification to the ops team on alert
 - Alert Rule: High CPU — fires when CPU exceeds 80% for 5 minutes
 - Alert Rule: Low Memory — fires when available memory drops below 1GB
 - Shared Dashboard — operations overview visible in the Azure portal
+
+![Log Analytics Workspace](screenshots/log-analytics-workspace.png)
+
+![Alert Rules](screenshots/alert-rules.png)
 
 ## Why Monitoring as Code
 Manually configured alerts drift over time and cannot be version
