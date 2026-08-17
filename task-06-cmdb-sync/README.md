@@ -1,4 +1,3 @@
-cat > ~/Desktop/team_az-portfolio/task-06-cmdb-sync/README.md << 'EOF'
 # Task 06 — Configuration Management Database Sync
 
 ## What I Built
@@ -29,4 +28,3 @@ effort — ghost CIs and rogue resources are detected automatically.
 ## Skills Demonstrated
 Azure Functions | Resource Graph | Python | Configuration Management |
 Automated Asset Discovery | Timer Triggers | CMDB Integration
-EOF
