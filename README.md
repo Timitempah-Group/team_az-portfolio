@@ -7,6 +7,14 @@ count. Each task tackles a genuine infrastructure problem — landing zones, con
 orchestration, disaster recovery, cost governance — the way a client engagement
 actually demands it.
 
+Infrastructure for each task is torn down after review to keep this a zero-cost
+portfolio rather than a running bill. The Terraform and Ansible in every folder is
+the real, applied code — proof lives in the commit history and the screenshots
+captured during each deployment. The CI/CD pipelines in Tasks 05 and 08 are
+intentionally disabled for the same reason: they're accurate, working GitOps
+pipelines, but with no live infrastructure left to target after teardown, they're
+parked rather than left to fail on every push.
+
 ## Tasks
 
 | # | Task | Skills |
