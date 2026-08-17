@@ -5,11 +5,17 @@ A Linux VM provisioned with Terraform and configured post-deployment
 with Ansible — demonstrating the standard IaC + configuration
 management pattern used in enterprise cloud delivery.
 
+![Resource Group Overview](screenshots/resource-group-overview.png)
+
 ## How It Works
 Terraform provisions the infrastructure: resource group, VNet, subnet,
 NSG (SSH only), public IP, network interface, and the Ubuntu 22.04 VM.
 Once Terraform completes and outputs the public IP, Ansible connects
 via SSH and handles post-provisioning configuration.
+
+![VM Overview](screenshots/vm-overview.png)
+
+![VM Properties](screenshots/vm-properties.png)
 
 ## Ansible Playbook Steps
 1. Update apt package cache
@@ -25,6 +31,8 @@ it connects to the running VM and configures the OS, installs
 packages, and deploys application config without needing an agent
 installed on the VM. Together they cover the full stack from
 infrastructure to application configuration.
+
+![Ansible Playbook Complete](screenshots/ansible-playbook-complete.png)
 
 ## Play Recap Result
 ok=7  changed=4  unreachable=0  failed=0
