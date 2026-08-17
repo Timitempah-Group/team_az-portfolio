@@ -5,6 +5,8 @@ A 3-job GitHub Actions pipeline demonstrating GitOps governance:
 validate and security scan → plan with saved artifact → manual
 approval gate → apply using the saved plan.
 
+![Terraform GitOps Pipeline](screenshots/terraform-gitops-pipeline.png)
+
 ## Pipeline Jobs
 
 ### Job 1 — Validate and Security Scan
@@ -34,6 +36,10 @@ could pick up unexpected changes.
 The apply job is protected by a GitHub Environment with manual
 approval — the pipeline pauses and waits for an approver to review
 before anything is deployed to Azure.
+
+![Pipeline Approval Gate](screenshots/01-pipeline-approval-gate.png)
+
+![Pipeline Complete](screenshots/02-pipeline-complete.png)
 
 ## Key Design Decisions
 No direct apply in production — every change goes through a PR,
