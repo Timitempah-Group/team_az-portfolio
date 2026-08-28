@@ -4,7 +4,7 @@
 
 Eleven builds, one rule: if it's not running in a real Azure subscription, it doesn't
 count. Each task tackles a genuine infrastructure problem: landing zones, container
-orchestration, disaster recovery, cost governance — the way a client engagement
+orchestration, disaster recovery, cost governance the way a client engagement
 actually demands it.
 
 Infrastructure for each task is torn down after review to keep this a zero-cost
